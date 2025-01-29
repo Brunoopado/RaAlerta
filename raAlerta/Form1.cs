@@ -21,53 +21,60 @@ namespace raAlerta
             SetStartup();
 
             if (!File.Exists(Application.StartupPath + @"\dados.txt"))
-                File.WriteAllText(Application.StartupPath + @"\dados.txt",DateTime.Now.AddMonths(6).ToString());
+                File.WriteAllText(Application.StartupPath + @"\dados.txt",DateTime.Now.AddMonths(-6).ToString());
+
+            //File.Delete(Application.StartupPath + @"\dados.txt");
+
+            Console.WriteLine(File.ReadAllText(Application.StartupPath + @"\dados.txt"));
 
             if (DateTime.Parse(File.ReadAllText(Application.StartupPath + @"\dados.txt")) >= DateTime.Now)
-                return;
-            else
-                Environment.Exit(0);
+                this.Close();
+            else { 
+                string tempoEspera = File.ReadAllText(Application.StartupPath + @"\dados.txt");
 
-            string tempoEspera = File.ReadAllText(Application.StartupPath + @"\dados.txt");
-
-            if (tempoEspera == "NUNCA")
-            {
-                return;
-            }
-            else
-            {
-                txtMsg.Text = "Já se passaram mais de 6 meses desde a última manutenção!";
-                txtMsg2.Text = "Para manter sua máquina em perfeito estado, entre em contato para uma revisão!";
-                this.StartPosition = FormStartPosition.Manual;
-                Rectangle screen = Screen.PrimaryScreen.WorkingArea;
-
-                for (int i = screen.Height; i > screen.Height - this.Height; i = i - 13)
+                if (tempoEspera == "NUNCA")
                 {
-                    this.Location = new Point(screen.Width - this.Width, i);
-                    await Task.Delay(1);
+                    return;
                 }
-                this.Location = new Point(screen.Width - this.Width, screen.Height - this.Height);
+                else
+                {
+                    txtMsg.Text = "Já se passaram mais de 6 meses desde a última manutenção!";
+                    txtMsg2.Text = "Para manter sua máquina em perfeito estado, entre em contato para uma revisão!";
+                    radioButton1.Checked = true;
+                    this.StartPosition = FormStartPosition.Manual;
+                    Rectangle screen = Screen.PrimaryScreen.WorkingArea;
+
+                    for (int i = screen.Height; i > screen.Height - this.Height; i = i - 13)
+                    {
+                        this.Location = new Point(screen.Width - this.Width, i);
+                        await Task.Delay(1);
+                    }
+                    this.Location = new Point(screen.Width - this.Width, screen.Height - this.Height);
+                }
             }
         }
         public static void SetStartup()
         {
             try
             {
-                using (RegistryKey startupKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+                const string appName = "RaAlerta";
+                string appPath = "\"" + Application.ExecutablePath + "\"";
+
+                using (RegistryKey startupKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
                 {
                     if (startupKey == null)
                     {
+                        MessageBox.Show("Não foi possível acessar o registro do Windows.");
                         return;
                     }
-                    string appName = "RaAlerta";
-                    string appPath = "\"" + Application.ExecutablePath + "\"";
 
                     object existingValue = startupKey.GetValue(appName);
-                    if (existingValue != null && existingValue.ToString() == appPath)
+                    if (existingValue?.ToString() == appPath)
                     {
-                        return;
+                        return; // Já está configurado corretamente
                     }
-                    startupKey.SetValue(appName, appPath);
+
+                    startupKey.SetValue(appName, appPath, RegistryValueKind.String);
                 }
             }
             catch (UnauthorizedAccessException)
@@ -79,6 +86,7 @@ namespace raAlerta
                 MessageBox.Show($"Erro: {ex.Message}");
             }
         }
+
         private void pictureBox2_Click(object sender, EventArgs e)
         {
             this.Close();
